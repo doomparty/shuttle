@@ -17,12 +17,10 @@ jobs:
         uses: shuttle-hq/deploy-action@v2
         with:
           shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
-          # 如果你的 Shuttle 项目需要特定的项目 ID，请取消注释并替换
-          # project-id: your_shuttle_project_id
 
       - name: Send Success Notification to Telegram
-        if: steps.shuttle_deploy.outcome == 'success'
-        uses: appleboy/telegram-action@v3
+        if: success()
+        uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TG_CHAT_ID }}
           token: ${{ secrets.TG_BOT_TOKEN }}
@@ -35,13 +33,13 @@ jobs:
             工作流: ${{ github.workflow }}
             运行 ID: ${{ github.run_id }}
             触发者: ${{ github.actor }}
-            时间: ${{ job.started_at }}
+            时间: ${{ github.event.repository.updated_at }}
 
             查看运行详情: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: Send Failure Notification to Telegram
-        if: steps.shuttle_deploy.outcome == 'failure'
-        uses: appleboy/telegram-action@v3
+        if: failure()
+        uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TG_CHAT_ID }}
           token: ${{ secrets.TG_BOT_TOKEN }}
@@ -54,11 +52,6 @@ jobs:
             工作流: ${{ github.workflow }}
             运行 ID: ${{ github.run_id }}
             触发者: ${{ github.actor }}
-            时间: ${{ job.started_at }}
+            时间: ${{ github.event.repository.updated_at }}
 
-            错误信息:
-            ```
-            ${{ steps.shuttle_deploy.outputs.error }}
-            ```
-
-            查看运行详情: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            查看运行详情: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 
