@@ -36,7 +36,6 @@ jobs:
             运行 ID: ${{ github.run_id }}
             触发者: ${{ github.actor }}
             时间: ${{ job.started_at }}
-            持续时间: ${{ job.steps.shuttle_deploy.conclusion == 'success' && format('{0} 秒', job.steps.shuttle_deploy.duration_ms / 1000) || 'N/A' }}
 
             查看运行详情: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
@@ -56,7 +55,6 @@ jobs:
             运行 ID: ${{ github.run_id }}
             触发者: ${{ github.actor }}
             时间: ${{ job.started_at }}
-            持续时间: ${{ job.steps.shuttle_deploy.conclusion == 'failure' && format('{0} 秒', job.steps.shuttle_deploy.duration_ms / 1000) || 'N/A' }}
 
             错误信息:
             ```
