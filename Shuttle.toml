@@ -1,0 +1,4 @@
+name = "web_server"
+
+[build]
+packages = ["pkg-config", "libssl-dev", "build-essential"] 
