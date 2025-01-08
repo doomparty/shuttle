@@ -1,4 +1,4 @@
-name = "web_server"
+name = "lostme"
 
 [build]
 packages = ["pkg-config", "libssl-dev", "build-essential"] 
