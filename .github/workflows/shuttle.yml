@@ -1,34 +1,40 @@
-name: Auto Deploy to Shuttle with Telegram Notification
+name: Deploy to Shuttle
 
 on:
   schedule:
-    - cron: '0 0 */25 * *'  # 每 25 天的 00:00 UTC 运行
-  workflow_dispatch:         # 支持手动触发
+    - cron: '0 0 */25 * *'  # 每 25 天运行一次
+  workflow_dispatch:         # 手动触发
+  watch:
+    types: started          # 当有人 star 项目时触发
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Install Rust toolchain
+      - uses: actions/checkout@v3
+      
+      - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          profile: minimal
           override: true
-
-      - name: Install Shuttle
-        run: cargo install cargo-shuttle
-
+      
+      - name: Install expect
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo -E apt-get update
+          sudo -E apt-get install -y expect tzdata
+      
       - name: Deploy to Shuttle
-        id: shuttle_deploy
+        id: deploy
         uses: shuttle-hq/deploy-action@v2
         with:
           shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
-          working-directory: .
-          no-test: true
+          project-id: proj_01JFV6T4N10AKW1JENPVHPB44C
           allow-dirty: true
+          no-test: true
 
       - name: Send Success Notification to Telegram
         if: success()
@@ -38,16 +44,9 @@ jobs:
           token: ${{ secrets.TG_BOT_TOKEN }}
           message: |
             🚀 Shuttle 部署成功! ✅
-
             项目: ${{ github.repository }}
-            分支: ${{ github.ref_name }}
-            提交: ${{ github.sha }}
-            工作流: ${{ github.workflow }}
-            运行 ID: ${{ github.run_id }}
             触发者: ${{ github.actor }}
             时间: ${{ github.event.repository.updated_at }}
-
-            查看运行详情: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: Send Failure Notification to Telegram
         if: failure()
@@ -57,13 +56,6 @@ jobs:
           token: ${{ secrets.TG_BOT_TOKEN }}
           message: |
             🚨 Shuttle 部署失败! ❌
-
             项目: ${{ github.repository }}
-            分支: ${{ github.ref_name }}
-            提交: ${{ github.sha }}
-            工作流: ${{ github.workflow }}
-            运行 ID: ${{ github.run_id }}
             触发者: ${{ github.actor }}
-            时间: ${{ github.event.repository.updated_at }}
-
-            查看运行详情: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 
+            时间: ${{ github.event.repository.updated_at }} 
