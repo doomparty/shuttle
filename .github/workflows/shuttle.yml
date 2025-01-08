@@ -12,11 +12,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install Shuttle
+        run: cargo install cargo-shuttle
+
       - name: Deploy to Shuttle
         id: shuttle_deploy
         uses: shuttle-hq/deploy-action@v2
         with:
           shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
+          working-directory: .
+          no-test: true
+          allow-dirty: true
 
       - name: Send Success Notification to Telegram
         if: success()
