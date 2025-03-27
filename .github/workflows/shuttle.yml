@@ -2,7 +2,7 @@ name: Deploy to Shuttle
 
 on:
   schedule:
-    - cron: '0 0 */25 * *'  # 每 25 天运行一次
+    - cron: '0 0 */10 * *'  # 每 25 天运行一次
   workflow_dispatch:         # 手动触发
   watch:
     types: started          # 当有人 star 项目时触发
