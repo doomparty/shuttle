@@ -2,14 +2,15 @@ name: Deploy to Shuttle
 
 on:
   schedule:
-    - cron: '0 0 */10 * *'
-  workflow_dispatch:
+    - cron: '0 0 */10 * *'  # 每 10 天运行一次
+  workflow_dispatch:         # 手动触发
   watch:
-    types: started
+    types: started           # 有人 star 时触发
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,8 +33,12 @@ jobs:
         id: latest
         run: |
           version=$(curl -s https://crates.io/api/v1/crates/shuttle-runtime | jq -r '.crate.newest_version')
-          echo "Latest shuttle-runtime version: $version"
-          echo "version=$version" >> $GITHUB_OUTPUT
+          if [ -z "$version" ] || [ "$version" = "null" ]; then
+            echo "❌ Failed to fetch shuttle-runtime version"
+            exit 1
+          fi
+          echo "✅ Latest shuttle-runtime version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Install cargo-binstall
         run: |
@@ -54,9 +59,9 @@ jobs:
           to: ${{ secrets.TG_CHAT_ID }}
           token: ${{ secrets.TG_BOT_TOKEN }}
           message: |
-            🚀 Shuttle 部署成功! ✅
+            ✅ Shuttle 部署成功!
             项目: ${{ github.repository }}
-            触发者: ${{ github.actor }}
+            用户: ${{ github.actor }}
             时间: ${{ github.event.repository.updated_at }}
 
       - name: Send Failure Notification to Telegram
@@ -68,5 +73,5 @@ jobs:
           message: |
             ❌ Shuttle 部署失败!
             项目: ${{ github.repository }}
-            触发者: ${{ github.actor }}
+            用户: ${{ github.actor }}
             时间: ${{ github.event.repository.updated_at }}
