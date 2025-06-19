@@ -49,7 +49,7 @@ jobs:
         run: cargo binstall -y --locked cargo-shuttle@${{ steps.latest.outputs.version }}
 
       - name: Deploy to Shuttle
-        run: shuttle deploy --id proj_01JFV6T4N10AKW1JENPVHPB44C --no-test --allow-dirty
+        run: shuttle deploy --lostme proj_01JFV6T4N10AKW1JENPVHPB44C --no-test --allow-dirty
         env:
           SHUTTLE_API_KEY: ${{ secrets.SHUTTLE_API_KEY }}
 
