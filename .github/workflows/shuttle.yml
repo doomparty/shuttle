@@ -1,77 +1,15 @@
-name: Deploy to Shuttle
-
-on:
-  schedule:
-    - cron: '0 0 */10 * *'  # 每 10 天运行一次
-  workflow_dispatch:         # 手动触发
-  watch:
-    types: started           # 有人 star 时触发
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-
-      - name: Install system packages
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y expect tzdata curl jq
-
-      - name: Fetch latest shuttle-runtime version
-        id: latest
-        run: |
-          version=$(curl -s https://crates.io/api/v1/crates/shuttle-runtime | jq -r '.crate.newest_version')
-          if [ -z "$version" ] || [ "$version" = "null" ]; then
-            echo "❌ Failed to fetch shuttle-runtime version"
-            exit 1
-          fi
-          echo "✅ Latest shuttle-runtime version: $version"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
-      - name: Install cargo-binstall
-        run: |
-          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-
-      - name: Install cargo-shuttle with matching version
-        run: cargo binstall -y --locked cargo-shuttle@${{ steps.latest.outputs.version }}
-
-      - name: Deploy to Shuttle
-        run: shuttle deploy --id proj_01JFV6T4N10AKW1JENPVHPB44C --no-test --allow-dirty
-        env:
-          SHUTTLE_API_KEY: ${{ secrets.SHUTTLE_API_KEY }}
-
-      - name: Send Success Notification to Telegram
-        if: success()
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TG_CHAT_ID }}
-          token: ${{ secrets.TG_BOT_TOKEN }}
-          message: |
-            ✅ Shuttle 部署成功!
-            项目: ${{ github.repository }}
-            用户: ${{ github.actor }}
-            时间: ${{ github.event.repository.updated_at }}
-
-      - name: Send Failure Notification to Telegram
-        if: failure()
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TG_CHAT_ID }}
-          token: ${{ secrets.TG_BOT_TOKEN }}
-          message: |
-            ❌ Shuttle 部署失败!
-            项目: ${{ github.repository }}
-            用户: ${{ github.actor }}
-            时间: ${{ github.event.repository.updated_at }}
+- name: Fetch latest shuttle-runtime version with debug
+  id: latest
+  run: |
+    echo "Fetching crate info from crates.io..."
+    response=$(curl -s https://crates.io/api/v1/crates/shuttle-runtime)
+    echo "Raw response from crates.io:"
+    echo "$response"
+    version=$(echo "$response" | jq -r '.crate.newest_version')
+    echo "Parsed version: $version"
+    if [ -z "$version" ] || [ "$version" = "null" ]; then
+      echo "❌ Failed to fetch shuttle-runtime version"
+      exit 1
+    fi
+    echo "✅ Latest shuttle-runtime version: $version"
+    echo "version=$version" >> "$GITHUB_OUTPUT"
