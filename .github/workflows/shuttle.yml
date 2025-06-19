@@ -2,39 +2,50 @@ name: Deploy to Shuttle
 
 on:
   schedule:
-    - cron: '0 0 */10 * *'  # 每 25 天运行一次
-  workflow_dispatch:         # 手动触发
+    - cron: '0 0 */10 * *'
+  workflow_dispatch:
   watch:
-    types: started          # 当有人 star 项目时触发
+    types: started
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           profile: minimal
           override: true
-      
-      - name: Install expect
+
+      - name: Install system packages
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          sudo -E apt-get update
-          sudo -E apt-get install -y expect tzdata
-      
+          sudo apt-get update
+          sudo apt-get install -y expect tzdata curl jq
+
+      - name: Fetch latest shuttle-runtime version
+        id: latest
+        run: |
+          version=$(curl -s https://crates.io/api/v1/crates/shuttle-runtime | jq -r '.crate.newest_version')
+          echo "Latest shuttle-runtime version: $version"
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: Install cargo-binstall
+        run: |
+          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+
+      - name: Install cargo-shuttle with matching version
+        run: cargo binstall -y --locked cargo-shuttle@${{ steps.latest.outputs.version }}
+
       - name: Deploy to Shuttle
-        id: deploy
-        uses: shuttle-hq/deploy-action@v2
-        with:
-          shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
-          project-id: proj_01JFV6T4N10AKW1JENPVHPB44C
-          allow-dirty: true
-          no-test: true
+        run: shuttle deploy --id proj_01JFV6T4N10AKW1JENPVHPB44C --no-test --allow-dirty
+        env:
+          SHUTTLE_API_KEY: ${{ secrets.SHUTTLE_API_KEY }}
 
       - name: Send Success Notification to Telegram
         if: success()
@@ -55,7 +66,7 @@ jobs:
           to: ${{ secrets.TG_CHAT_ID }}
           token: ${{ secrets.TG_BOT_TOKEN }}
           message: |
-            🚨 Shuttle 部署失败! ❌
+            ❌ Shuttle 部署失败!
             项目: ${{ github.repository }}
             触发者: ${{ github.actor }}
-            时间: ${{ github.event.repository.updated_at }} 
+            时间: ${{ github.event.repository.updated_at }}
