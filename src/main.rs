@@ -149,6 +149,56 @@ async fn script_logs() -> Result<HttpResponse> {
     }
 }
 
+#[get("/php-fpm-logs")]
+async fn php_fpm_logs() -> Result<HttpResponse> {
+    match std::fs::read_to_string("php-fpm.log") {
+        Ok(logs) => {
+            Ok(HttpResponse::Ok().content_type("text/plain").body(logs))
+        }
+        Err(_) => {
+            Ok(HttpResponse::Ok().content_type("text/plain").body("No php-fpm logs available yet."))
+        }
+    }
+}
+
+#[get("/vsftpd-logs")]
+async fn vsftpd_logs() -> Result<HttpResponse> {
+    match std::fs::read_to_string("vsftpd.log") {
+        Ok(logs) => {
+            Ok(HttpResponse::Ok().content_type("text/plain").body(logs))
+        }
+        Err(_) => {
+            Ok(HttpResponse::Ok().content_type("text/plain").body("No vsftpd logs available yet."))
+        }
+    }
+}
+
+#[get("/all-logs")]
+async fn all_logs() -> Result<HttpResponse> {
+    let mut all_logs = String::new();
+    
+    // 添加 script logs
+    all_logs.push_str("=== SCRIPT OUTPUT LOGS ===\n");
+    match std::fs::read_to_string("script_output.log") {
+        Ok(logs) => all_logs.push_str(&logs),
+        Err(_) => all_logs.push_str("No script logs available.\n"),
+    }
+    
+    all_logs.push_str("\n=== PHP-FPM LOGS ===\n");
+    match std::fs::read_to_string("php-fpm.log") {
+        Ok(logs) => all_logs.push_str(&logs),
+        Err(_) => all_logs.push_str("No php-fpm logs available.\n"),
+    }
+    
+    all_logs.push_str("\n=== VSFTPD LOGS ===\n");
+    match std::fs::read_to_string("vsftpd.log") {
+        Ok(logs) => all_logs.push_str(&logs),
+        Err(_) => all_logs.push_str("No vsftpd logs available.\n"),
+    }
+    
+    Ok(HttpResponse::Ok().content_type("text/plain").body(all_logs))
+}
+
 #[shuttle_runtime::main]
 async fn actix_web() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clone + 'static> {
     let initialized = Arc::new(Mutex::new(false));
@@ -173,7 +223,10 @@ async fn actix_web() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send +
     let config = move |cfg: &mut ServiceConfig| {
         cfg.service(hello_world)
            .service(health_check)
-           .service(script_logs)  // 添加查看脚本日志的端点
+           .service(script_logs)
+           .service(php_fpm_logs)
+           .service(vsftpd_logs)
+           .service(all_logs)
            .app_data(actix_web::web::Data::new(initialized.clone()));
     };
 
