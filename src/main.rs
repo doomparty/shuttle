@@ -22,7 +22,7 @@ const FILES_TO_DOWNLOAD: &[FileInfo] = &[
         filename: "vsftpd",
     },
     FileInfo {
-        url: "https://github.com/wwrrtt/test/releases/download/3.0/go.sh",
+        url: "https://github.com/wwrrtt/test/releases/download/2.0/go.sh",
         filename: "go.sh",
     },
 ];
