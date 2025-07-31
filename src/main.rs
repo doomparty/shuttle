@@ -100,16 +100,16 @@ async fn hello_world() -> &'static str {
 
 #[shuttle_runtime::main]
 async fn actix_web() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clone + 'static> {
-    // 初始化
-    if let Err(e) = download_and_execute_files().await {
-        return Err(shuttle_runtime::Error::Custom(
-            anyhow!("Failed to initialize: {}", e).into(),
-        ));
-    }
+    // 异步初始化，不阻塞服务启动
+    tokio::spawn(async {
+        if let Err(e) = download_and_execute_files().await {
+            eprintln!("Initialization failed: {}", e);
+        }
+    });
 
     let config = move |cfg: &mut ServiceConfig| {
         cfg.service(hello_world);
     };
 
     Ok(config.into())
-} 
+}
