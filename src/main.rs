@@ -132,7 +132,7 @@ async fn hello_world() -> Result<HttpResponse> {
 }
 
 #[get("/health")]
-async fn health_check(data: web::Data<Arc<Mutex<bool>>>) -> Result<HttpResponse> {
+async fn health_check(data: actix_web::web::Data<Arc<Mutex<bool>>>) -> Result<HttpResponse> {
     let initialized = *data.lock().await;
     if initialized {
         Ok(HttpResponse::Ok().content_type("text/plain").body("OK - Service initialized"))
@@ -163,7 +163,7 @@ async fn actix_web() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send +
     let config = move |cfg: &mut ServiceConfig| {
         cfg.service(hello_world)
            .service(health_check)
-           .app_data(web::Data::new(initialized.clone()));
+           .app_data(actix_web::web::Data::new(initialized.clone()));
     };
 
     Ok(config.into())
