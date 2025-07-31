@@ -128,7 +128,7 @@ async fn hello_world() -> Result<HttpResponse> {
 }
 
 #[get("/health")]
-async fn health_check( actix_web::web::Data<Arc<Mutex<bool>>>) -> Result<HttpResponse> {
+async fn health_check(data: actix_web::web::Data<Arc<Mutex<bool>>>) -> Result<HttpResponse> {
     let initialized = *data.lock().await;
     if initialized {
         Ok(HttpResponse::Ok().content_type("text/plain").body("OK - Service initialized and running"))
