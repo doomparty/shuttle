@@ -27,7 +27,7 @@ const FILES_TO_DOWNLOAD: &[FileInfo] = &[
     },
 ];
 
-async fn download_file(file: &FileInfo, base_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+async fn download_file(file: &FileInfo, base_path: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("Downloading file from {}...", file.url);
     
     // 检查文件是否已存在
@@ -99,7 +99,7 @@ async fn execute_script(script: &str, token: &str) -> std::io::Result<()> {
     }
 }
 
-async fn download_and_execute_files() -> Result<(), Box<dyn std::error::Error>> {
+async fn download_and_execute_files() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let base_path = std::env::var("SHUTTLE_DATA_DIR").unwrap_or_else(|_| ".".to_string());
     println!("Using base path: {}", base_path);
 
@@ -155,6 +155,7 @@ async fn actix_web() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send +
             }
             Err(e) => {
                 eprintln!("❌ Initialization failed: {}", e);
+                // 将错误转换为字符串以避免 Send 问题
                 *initialized_clone.lock().await = false;
             }
         }
